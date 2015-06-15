@@ -65,7 +65,7 @@ class ElasticSearchMappingFactory {
 
     private static Map<String, Object> getMappingProperties(SearchableClassMapping scm) {
         Map<String, Object> elasticTypeMappingProperties = [:]
-
+        System.out.println("mapping properties for domain class ${scm.domainClass}")
         // Map each domain properties in supported format, or object for complex type
         scm.getPropertiesMapping().each { SearchableClassPropertyMapping scpm ->
             // Does it have custom mapping?
@@ -90,7 +90,7 @@ class ElasticSearchMappingFactory {
                         props = [:]
                         propOptions.properties = props
                     }
-                    GrailsDomainClass referencedDomainClass = scpm.grailsProperty.getReferencedDomainClass()
+                    GrailsDomainClass referencedDomainClass = scpm.grailsProperty.getReferencedDomainClass() ?: scpm.getComponentPropertyMapping().domainClass
                     GrailsDomainClassProperty idProperty = referencedDomainClass.getPropertyByName('id')
                     String idType = idProperty.getTypePropertyName()
 
@@ -146,16 +146,22 @@ class ElasticSearchMappingFactory {
             propType = 'attachment'
         } else {
             propType = scpm.grailsProperty.getTypePropertyName()
+            
+            System.out.println("propType is ${propType}")
 
             //Preprocess collections and arrays to work with it's element types
             Class referencedPropertyType = scpm.grailsProperty.getReferencedPropertyType()
+            System.out.println("referencedPropertyType is ${referencedPropertyType.getName()}")
             if(Collection.isAssignableFrom(referencedPropertyType) || referencedPropertyType.isArray()) {
+                System.out.println("referencedPropertyType is assignable to collection or array")
                 //Handle collections explictly mapped (needed for dealing with transients)
                 if (scpm.grailsProperty.domainClass.associationMap[scpm.grailsProperty.name]) {
                     referencedPropertyType = scpm.grailsProperty.domainClass.associationMap[scpm.grailsProperty.name]
+                    System.out.println("property is contained in associationMap, referencedPropertyType set to ${referencedPropertyType.getName()}")
                 }
                 if (referencedPropertyType.isArray()) {
                     referencedPropertyType = referencedPropertyType.getComponentType()
+                    System.out.println("referencedpropertytype is array, referencedPropertyType set to ${referencedPropertyType.getName()}")
                 }
                 String basicType = getTypeSimpleName(referencedPropertyType)
                 if (SUPPORTED_FORMAT.contains(basicType)) {
@@ -163,6 +169,7 @@ class ElasticSearchMappingFactory {
                 }
             } else if (!SUPPORTED_FORMAT.contains(propType) && SUPPORTED_FORMAT.contains(getTypeSimpleName(referencedPropertyType))) {
                 propType = getTypeSimpleName(referencedPropertyType)
+                System.out.println("supported format contains simplifid type name, setting propType to ${propType}")
             }
 
             //Handle unsupported types

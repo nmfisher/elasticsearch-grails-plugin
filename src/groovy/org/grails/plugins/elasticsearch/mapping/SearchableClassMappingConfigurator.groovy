@@ -66,8 +66,15 @@ class SearchableClassMappingConfigurator {
         // Inject cross-referenced component mappings.
         for (SearchableClassMapping scm : mappings) {
             for (SearchableClassPropertyMapping scpm : scm.getPropertiesMapping()) {
-                if (scpm.isComponent()) {
-                    Class<?> componentType = scpm.getGrailsProperty().getReferencedPropertyType()
+                if (scpm.isComponent() && scpm.getGrailsProperty().isPersistent()) {
+                    System.out.println("found persistent component, determining referencedpropertytype")
+                    Class<?> componentType = scpm.getGrailsProperty().getReferencedPropertyType() 
+                    System.out.println("found componentType: ${componentType?.getName()}")
+                    scpm.setComponentPropertyMapping(elasticSearchContext.getMappingContextByType(componentType))
+                } else if(scpm.isComponent()) {
+                    System.out.println("found transient component, determining referencedpropertytype from domain class")
+                    Class<?> componentType = scpm.getGrailsProperty().getDomainClass().getRelatedClassType(scpm.propertyName)
+                    System.out.println("found indirect componentType: ${componentType?.getName()}")
                     scpm.setComponentPropertyMapping(elasticSearchContext.getMappingContextByType(componentType))
                 }
             }
